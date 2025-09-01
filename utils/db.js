@@ -23,33 +23,40 @@ function getPool() {
 
 function getTableNames() {
   return {
-    validationsTable: process.env.DB_TABLE_VALIDATIONS || 'user',
-    usernamesTable: process.env.DB_TABLE_USERNAMES || 'usernames',
+    usersTable: process.env.DB_TABLE_USER || 'user',
+    passTable: process.env.DB_TABLE_PASS || 'pass',
   };
 }
 
-async function upsertUserValidation({ id_twitch, valide = 1 }) {
-  const { validationsTable } = getTableNames();
+// Upsert into `user` (username, id_twitch) with UNIQUE on id_twitch
+async function upsertUser({ username, id_twitch }) {
+  const { usersTable } = getTableNames();
   const pool = getPool();
-  // Requires UNIQUE/PRIMARY KEY on id_twitch for ON DUPLICATE to work best
-  const sql = `INSERT INTO \`${validationsTable}\` (id_twitch, valide)
-              VALUES (?, ?)
-              ON DUPLICATE KEY UPDATE valide = VALUES(valide)`;
-  await pool.execute(sql, [id_twitch, valide]);
-}
-
-async function upsertUsernameMapping({ username, id_twitch }) {
-  const { usernamesTable } = getTableNames();
-  const pool = getPool();
-  // If you have UNIQUE on id_twitch, this keeps latest username
-  const sql = `INSERT INTO \`${usernamesTable}\` (username, id_twitch)
+  const sql = `INSERT INTO \`${usersTable}\` (username, id_twitch)
               VALUES (?, ?)
               ON DUPLICATE KEY UPDATE username = VALUES(username)`;
   await pool.execute(sql, [username, id_twitch]);
 }
 
+// Set valide=1 in `pass` for given id_twitch; update if exists, else insert
+async function setPassValid({ id_twitch, valide = 1 }) {
+  const { passTable } = getTableNames();
+  const pool = getPool();
+  const [res] = await pool.execute(
+    `UPDATE \`${passTable}\` SET valide = ? WHERE id_twitch = ?`,
+    [valide, id_twitch]
+  );
+  // @ts-ignore mysql2 returns ResultSetHeader
+  if (!res || !res.affectedRows) {
+    await pool.execute(
+      `INSERT INTO \`${passTable}\` (id_twitch, valide) VALUES (?, ?)`,
+      [id_twitch, valide]
+    );
+  }
+}
+
 module.exports = {
   getPool,
-  upsertUserValidation,
-  upsertUsernameMapping,
+  upsertUser,
+  setPassValid,
 };

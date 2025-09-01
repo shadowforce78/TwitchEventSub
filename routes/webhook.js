@@ -56,13 +56,13 @@ router.post('/eventsub/webhook', express.raw({ type: 'application/json' }), (req
             console.log(`Cost: ${event.reward.cost} points`);
 
             try {
-                const { upsertUserValidation, upsertUsernameMapping } = require('../utils/db');
+                const { upsertUser, setPassValid } = require('../utils/db');
                 const id_twitch = Number(event.user_id);
                 const username = event.user_name;
-                upsertUserValidation({ id_twitch, valide: 1 })
-                    .catch((e) => console.error('DB validation upsert error (async):', e.message));
-                upsertUsernameMapping({ username, id_twitch })
-                    .catch((e) => console.error('DB username upsert error (async):', e.message));
+                upsertUser({ username, id_twitch })
+                    .catch((e) => console.error('DB upsert user error (async):', e.message));
+                setPassValid({ id_twitch, valide: 1 })
+                    .catch((e) => console.error('DB set pass valid error (async):', e.message));
             } catch (e) {
                 console.error('DB upsert error:', e.message);
             }
