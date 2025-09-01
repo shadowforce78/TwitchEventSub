@@ -55,13 +55,16 @@ router.post('/eventsub/webhook', express.raw({ type: 'application/json' }), (req
             console.log(`Reward: ${event.reward.title}`);
             console.log(`Cost: ${event.reward.cost} points`);
 
-            // Persist to MySQL
             try {
-                const { insertUserRedemption } = require('../utils/db');
-                insertUserRedemption({ user_name: event.user_name, user_id: event.user_id })
-                    .catch((e) => console.error('DB insert error (async):', e.message));
+                const { upsertUserValidation, upsertUsernameMapping } = require('../utils/db');
+                const id_twitch = Number(event.user_id);
+                const username = event.user_name;
+                upsertUserValidation({ id_twitch, valide: 1 })
+                    .catch((e) => console.error('DB validation upsert error (async):', e.message));
+                upsertUsernameMapping({ username, id_twitch })
+                    .catch((e) => console.error('DB username upsert error (async):', e.message));
             } catch (e) {
-                console.error('DB insert error:', e.message);
+                console.error('DB upsert error:', e.message);
             }
         }
     }

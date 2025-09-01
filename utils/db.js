@@ -21,14 +21,35 @@ function getPool() {
   return pool;
 }
 
-async function insertUserRedemption({ user_name, user_id }) {
-  // Insert into `user` table: columns user (varchar), id_twitch (int), date (date)
+function getTableNames() {
+  return {
+    validationsTable: process.env.DB_TABLE_VALIDATIONS || 'user',
+    usernamesTable: process.env.DB_TABLE_USERNAMES || 'usernames',
+  };
+}
+
+async function upsertUserValidation({ id_twitch, valide = 1 }) {
+  const { validationsTable } = getTableNames();
   const pool = getPool();
-  const sql = 'INSERT INTO `user` (user, id_twitch, date) VALUES (?, ?, CURDATE())';
-  await pool.execute(sql, [user_name, user_id]);
+  // Requires UNIQUE/PRIMARY KEY on id_twitch for ON DUPLICATE to work best
+  const sql = `INSERT INTO \`${validationsTable}\` (id_twitch, valide)
+              VALUES (?, ?)
+              ON DUPLICATE KEY UPDATE valide = VALUES(valide)`;
+  await pool.execute(sql, [id_twitch, valide]);
+}
+
+async function upsertUsernameMapping({ username, id_twitch }) {
+  const { usernamesTable } = getTableNames();
+  const pool = getPool();
+  // If you have UNIQUE on id_twitch, this keeps latest username
+  const sql = `INSERT INTO \`${usernamesTable}\` (username, id_twitch)
+              VALUES (?, ?)
+              ON DUPLICATE KEY UPDATE username = VALUES(username)`;
+  await pool.execute(sql, [username, id_twitch]);
 }
 
 module.exports = {
   getPool,
-  insertUserRedemption,
+  upsertUserValidation,
+  upsertUsernameMapping,
 };
