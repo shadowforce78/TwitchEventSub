@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  twitch-webhook:
+    build: .
+    container_name: twitch-webhook
+    env_file: .env
+    expose:
+      - "1234"
+    environment:
+      - VIRTUAL_PORT=1234
+      - VIRTUAL_HOST=twitch.saumondeluxe.com
+      - LETSENCRYPT_HOST=twitch.saumondeluxe.com
+      - LETSENCRYPT_EMAIL=planque.adam@gmail.com
+    networks:
+      - proxy-tier
+
+networks:
+  proxy-tier:
+    external: true
